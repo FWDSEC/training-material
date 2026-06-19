@@ -35,7 +35,8 @@ app.get('/admin', (req, res) => {
 
     try {
         const decoded = jwt.verify(token, SECRET_KEY);
-        res.json({ message: `Welcome ${decoded.username}!` });
+        if( decoded.username == "admin" )
+            res.json({ message: `Welcome ${decoded.username}!` });
     } catch (err) {
         res.status(401).send('Unauthorized');
     }
