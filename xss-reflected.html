@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>XSS Training</title>
+  <style>
+    pre,
+    iframe {
+      width: 100%;
+      height: 50vh;
+      overflow-y: scroll
+    }
+  </style>
+</head>
+
+<body>
+
+  <pre id="output" placeholder="Raw HTML" readonly></pre>
+  <br>
+  <iframe id="viewer"></iframe>
+
+  <script>
+    const urlQueryParam = (req, regexRule = /(url)/gi) => {
+      const reqQuery = (new URL(req)).searchParams
+      return [...reqQuery.keys()].filter((key) => regexRule.test(key))[0];
+    };
+
+    const bannerAd = () => {
+
+      //Bootstrap (ignore this block during training as it is only used to make the code function live.)
+      const ad = {
+        altText: "Puppies",
+        adContent: "https://place.dog/300/200"
+      };
+      const id = 1;
+      const config = {
+        trackingApi: {
+          url: 'http://localhost'
+        }
+      };
+      req = {
+        query: (k) => (new URL(location.href)).searchParams.get(k),
+        headers: {
+          referrer: location.href
+        }
+      }
+      // END Bootstrap
+
+      const urlParameter = req.query(urlQueryParam(location.href)) || req.headers.referer;
+
+      let trackerLink = `${config.trackingApi.url}/l/${id}`;
+
+      if (urlParameter !== undefined) {
+        trackerLink += '?';
+
+        const queryParams = [];
+
+        if (urlParameter !== undefined) queryParams.push(`url=${urlParameter}`);
+
+        trackerLink += queryParams.join('&');
+      }
+
+      return (
+        `<html>
+          <header>
+          </header>
+          <body>
+            <a rel='nofollow' id='link-${id}' href='${trackerLink}' target='_blank'>
+              <img alt='${ad.altText}' src='${ad.adContent}' >
+            </a>
+          </body>
+          <script type="text/javascript">
+            var refurl=document.referrer;
+            var trackingLink = document.getElementById("link-${id}")
+            if (!trackingLink.href.includes('url=')) {
+              var queryParams = trackingLink.href.split('?')[1];
+              if (queryParams !== undefined) {
+                queryParams = queryParams.split('&');
+              } else {
+                queryParams = [];
+              }
+              queryParams.push('url=' + refurl);
+              var linkhref = "${config.trackingApi.url}/l/${id}?" + queryParams.join('&');
+              trackingLink.href = linkhref;
+            }
+          <\/script>
+        </html>`
+      );
+    };
+
+    const outputEl = document.getElementById('output')
+    const payloadEl = document.getElementById('payload')
+    const viewerEl = document.getElementById('viewer')
+
+    const attemptHtml = bannerAd();
+    console.log(attemptHtml);
+    outputEl.innerText = attemptHtml;
+    viewerEl.src = `data:text/html;charset=utf-8,${attemptHtml}`;
+
+  </script>
+</body>
+
+</html>
